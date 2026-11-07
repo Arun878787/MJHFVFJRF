@@ -43,11 +43,12 @@ class FloatingPanelService : Service() {
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         panel = TextView(this).apply {
             text = "BACCARAT AI\nPreparing estimate…"
-            textSize = 14f
+            textSize = 10f
             setTextColor(android.graphics.Color.WHITE)
             setBackgroundColor(0xF01A2940.toInt())
-            setPadding(22, 18, 22, 18)
-            setLineSpacing(5f, 1f)
+            setPadding(10, 8, 10, 8)
+            setLineSpacing(1f, 1f)
+            maxWidth = (resources.displayMetrics.widthPixels * 0.43f).toInt()
             elevation = 12f
         }
         val type = if (Build.VERSION.SDK_INT >= 26) {
@@ -65,7 +66,7 @@ class FloatingPanelService : Service() {
         ).apply {
             gravity = Gravity.TOP or Gravity.END
             x = 12
-            y = 190
+            y = 8
         }
         wm?.addView(panel, params)
         handler.post(refresh)
