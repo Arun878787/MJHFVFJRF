@@ -27,7 +27,7 @@ class FloatingPanelService : Service() {
                     "\\nMatched hands: " + estimate.sampleSize +
                     "\\nPattern: " + estimate.pattern
             }
-            panel?.text = "BACCARAT AI  •  PATTERN ANALYSIS\\n\\n" +
+            panel?.text = "BACCARAT AI  •  ROADMAP READER\\n" + AnalyzerState.roadmapStatus + "\\n\\n" +
                 displayText +
                 "\\n\\nPast patterns are not a guarantee."
             handler.postDelayed(this, 1000)
