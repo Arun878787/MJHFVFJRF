@@ -11,18 +11,32 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.delay
+
+private val Navy = Color(0xFF0A1220)
+private val Panel = Color(0xFF142238)
+private val Muted = Color(0xFF9FB1C8)
+private val PlayerBlue = Color(0xFF2878E8)
+private val BankerRed = Color(0xFFD9434B)
+private val TieGreen = Color(0xFF159B68)
+private val Gold = Color(0xFFFFC857)
 
 class MainActivity : ComponentActivity() {
     private val captureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -38,27 +52,126 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = PlayerBlue, secondary = TieGreen, background = Navy,
+                    surface = Panel, onPrimary = Color.White, onSurface = Color.White
+                )
+            ) {
                 val prefs = remember { getSharedPreferences("baccarat_history", Context.MODE_PRIVATE) }
-                var history by remember { mutableStateOf<List<String>>(prefs.getString("results", "")?.map { it.toString() } ?: emptyList()) }
-                LaunchedEffect(history) { prefs.edit().putString("results", history.joinToString("")).apply(); AnalyzerState.setHistory(history) }
-                val player = history.count { it == "P" }
-                val banker = history.count { it == "B" }
-                val tie = history.count { it == "T" }
-                val total = history.size.coerceAtLeast(1)
-                val percent: (Int) -> Int = { count -> count * 100 / total }
+                var history by remember { mutableStateOf(prefs.getString("results", "").orEmpty().map { it.toString() }) }
+                var analysisMode by remember { mutableStateOf("Historical patterns") }
+                var modeMenu by remember { mutableStateOf(false) }
+                var liveStatus by remember { mutableStateOf("Automatic reader is stopped") }
+                var sessionName by remember { mutableStateOf("Current shoe") }
+                LaunchedEffect(history) {
+                    prefs.edit().putString("results", history.joinToString("")).apply()
+                    AnalyzerState.setHistory(history)
+                }
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        liveStatus = AnalyzerState.roadmapStatus
+                        delay(900)
+                    }
+                }
+
+                val p = history.count { it == "P" }
+                val b = history.count { it == "B" }
+                val t = history.count { it == "T" }
+                val total = history.size
+                val resolved = (p + b).coerceAtLeast(1)
+                val estimate = remember(history) { AnalyzerState.estimateNext() }
 
                 Column(
-                    Modifier.fillMaxSize().background(Color(0xFF0B1220)).verticalScroll(rememberScrollState()).padding(18.dp),
+                    Modifier.fillMaxSize().background(Navy).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 18.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text("BACCARAT AI", style = MaterialTheme.typography.headlineMedium, color = Color.White)
-                    Text("SPEED TABLE ANALYZER", color = Color(0xFF9FB1CA))
-                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17243A))) {
-                        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("LIVE SCREEN READER", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                            Text("HONOR 400 Lite • Stake Speed Baccarat A", color = Color(0xFFB7C6D9))
-                            Text("OCR: " + AnalyzerState.latestOcrText.take(180), color = Color.White)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text("BACCARAT COACH", color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold)
+                            Text("SHOE TRACKER  •  LIVE ANALYSIS", color = Muted, fontSize = 10.sp, letterSpacing = 1.2.sp)
+                        }
+                        Surface(color = Color(0xFF20334D), shape = RoundedCornerShape(20.dp)) {
+                            Text("ANDROID", Modifier.padding(horizontal = 12.dp, vertical = 7.dp), color = Gold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(18.dp)) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column {
+                                    Text("BUILD SHOE HISTORY", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("$sessionName  •  $total hands recorded", color = Muted, fontSize = 11.sp)
+                                }
+                                Text("SHOE", color = Gold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ResultEntryButton("PLAYER", "P", PlayerBlue, Modifier.weight(1f)) { history = history + "P" }
+                                ResultEntryButton("BANKER", "B", BankerRed, Modifier.weight(1f)) { history = history + "B" }
+                                ResultEntryButton("TIE", "T", TieGreen, Modifier.weight(1f)) { history = history + "T" }
+                            }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(onClick = { if (history.isNotEmpty()) history = history.dropLast(1) }, modifier = Modifier.weight(1f), enabled = history.isNotEmpty()) { Text("↶  UNDO") }
+                                OutlinedButton(onClick = { history = emptyList(); sessionName = "New shoe" }, modifier = Modifier.weight(1f), enabled = history.isNotEmpty()) { Text("CLEAR SHOE") }
+                            }
+                            if (history.isNotEmpty()) {
+                                Text("RECENT RESULTS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    itemsIndexed(history.takeLast(50)) { index, result ->
+                                        val color = resultColor(result)
+                                        Box(Modifier.size(29.dp).background(color, CircleShape), contentAlignment = Alignment.Center) {
+                                            Text(result, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            } else {
+                                Text("Tap P, B or T after each completed hand.", color = Muted, fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    Text("SHOE STATISTICS", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatCard("PLAYER", p, if (total == 0) 0 else p * 100 / total, PlayerBlue, Modifier.weight(1f))
+                        StatCard("BANKER", b, if (total == 0) 0 else b * 100 / total, BankerRed, Modifier.weight(1f))
+                        StatCard("TIE", t, if (total == 0) 0 else t * 100 / total, TieGreen, Modifier.weight(1f))
+                    }
+                    Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(18.dp)) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("SYSTEM SUGGESTION", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Box {
+                                OutlinedButton(onClick = { modeMenu = true }) {
+                                    Text(analysisMode, color = Color.White)
+                                    Text("  ▾", color = Gold)
+                                }
+                                DropdownMenu(expanded = modeMenu, onDismissRequest = { modeMenu = false }) {
+                                    listOf("Historical patterns", "Statistics only", "Manual tracking").forEach { mode ->
+                                        DropdownMenuItem(text = { Text(mode) }, onClick = { analysisMode = mode; modeMenu = false })
+                                    }
+                                }
+                            }
+                            when (analysisMode) {
+                                "Statistics only" -> Text("No next-hand call. This panel reports recorded shoe statistics only.", color = Muted, fontSize = 12.sp)
+                                "Manual tracking" -> Text("Manual entry mode is active. Record the actual result after each hand.", color = Muted, fontSize = 12.sp)
+                                else -> {
+                                    Text(
+                                        if (estimate.side == "WAITING" || estimate.side == "NO CLEAR EDGE") "NO CLEAR HISTORICAL PATTERN" else "HISTORICAL OBSERVATION: ${estimate.side}",
+                                        color = if (estimate.side == "PLAYER") PlayerBlue else if (estimate.side == "BANKER") BankerRed else Gold,
+                                        fontSize = 16.sp, fontWeight = FontWeight.Bold
+                                    )
+                                    Text("${estimate.pattern}  •  matched examples: ${estimate.sampleSize}", color = Muted, fontSize = 12.sp)
+                                    if (estimate.confidence > 0) Text("Observed frequency: ${estimate.confidence}% in matching past examples", color = Muted, fontSize = 12.sp)
+                                }
+                            }
+                            Text("Historical records are descriptive only. Baccarat outcomes are random; this is not a prediction or betting instruction.", color = Gold, fontSize = 11.sp)
+                        }
+                    }
+
+                    Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(18.dp)) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Text("LIVE TABLE READER", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Read the visible baccarat roadmap from another app using Android screen capture. Always verify detected results before relying on the saved history.", color = Muted, fontSize = 12.sp)
+                            Text(liveStatus, color = Gold, fontSize = 11.sp)
                             Button(
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = {
@@ -69,68 +182,18 @@ class MainActivity : ComponentActivity() {
                                         captureLauncher.launch(manager.createScreenCaptureIntent())
                                     }
                                 }
-                            ) { Text("Start automatic screen reading") }
+                            ) { Text("START AUTOMATIC SCREEN READING") }
                             OutlinedButton(
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = {
                                     stopService(Intent(this@MainActivity, CaptureService::class.java))
                                     stopService(Intent(this@MainActivity, FloatingPanelService::class.java))
+                                    liveStatus = "Automatic reader stopped"
                                 }
-                            ) { Text("Stop screen reader") }
+                            ) { Text("STOP SCREEN READER") }
                         }
                     }
-
-                    Text("RECORDED RESULTS", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ResultCard("PLAYER", player, percent(player), Color(0xFF2878D0), Modifier.weight(1f))
-                        ResultCard("BANKER", banker, percent(banker), Color(0xFFD94B50), Modifier.weight(1f))
-                        ResultCard("TIE", tie, percent(tie), Color(0xFF27966B), Modifier.weight(1f))
-                    }
-                    val patternEstimate = remember(history) {
-                        val outcomes = history.filter { it == "P" || it == "B" }
-                        if (outcomes.size < 8) "Need at least 8 Player/Banker results for a pattern estimate."
-                        else {
-                            val pCount = outcomes.count { it == "P" }
-                            val bCount = outcomes.count { it == "B" }
-                            "Pattern estimate: " + (if (pCount >= bCount) "PLAYER" else "BANKER") + " • recorded overall frequency " + (maxOf(pCount, bCount) * 100 / (pCount + bCount)) + "%"
-                        }
-                    }
-                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17243A))) {
-                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Text("PATTERN ESTIMATE", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                            Text(patternEstimate, color = Color(0xFFB7C6D9))
-                            Text("Historical frequency only. Baccarat outcomes remain random; this is not a reliable forecast.", color = Color(0xFFFFD28A))
-                        }
-                    }
-                    Text("Add the result after each hand", color = Color(0xFFB7C6D9))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { history = history + "P" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2878D0))) { Text("PLAYER") }
-                        Button(onClick = { history = history + "B" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD94B50))) { Text("BANKER") }
-                        Button(onClick = { history = history + "T" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF27966B))) { Text("TIE") }
-                    }
-                    Text("RECENT HANDS • ${history.size}", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(history.takeLast(30).reversed()) { result ->
-                            Box(
-                                Modifier.size(34.dp).background(
-                                    when (result) { "P" -> Color(0xFF2878D0); "B" -> Color(0xFFD94B50); else -> Color(0xFF27966B) },
-                                    RoundedCornerShape(50)
-                                ),
-                                contentAlignment = androidx.compose.ui.Alignment.Center
-                            ) { Text(result, color = Color.White) }
-                        }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { if (history.isNotEmpty()) history = history.dropLast(1) }, modifier = Modifier.weight(1f)) { Text("Undo last") }
-                        OutlinedButton(onClick = { history = emptyList() }, modifier = Modifier.weight(1f)) { Text("Clear history") }
-                    }
-                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17243A))) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("ROADMAP ANALYSIS", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                            Text("Automatic colored-roadmap recognition still needs calibration against your actual game screen. The app will not guess results from unrelated screen text.", color = Color(0xFFB7C6D9))
-                            Text("Percentages above describe recorded past hands only. They do not predict or improve the odds of the next hand.", color = Color(0xFFFFD28A))
-                        }
-                    }
+                    Text("Baccarat Coach style • Manual + automatic workflow", color = Muted, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
             }
         }
@@ -138,12 +201,33 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun ResultCard(label: String, count: Int, percent: Int, tint: Color, modifier: Modifier = Modifier) {
-    Card(modifier, colors = CardDefaults.cardColors(containerColor = Color(0xFF17243A))) {
-        Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(label, color = tint, style = MaterialTheme.typography.labelMedium)
-            Text(count.toString(), color = Color.White, style = MaterialTheme.typography.headlineSmall)
-            Text("$percent%", color = Color(0xFFB7C6D9))
+private fun ResultEntryButton(label: String, letter: String, tint: Color, modifier: Modifier, onClick: () -> Unit) {
+    Button(
+        onClick = onClick, modifier = modifier.height(62.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = tint),
+        contentPadding = PaddingValues(4.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text(letter, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+            Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold)
         }
     }
+}
+
+@Composable
+private fun StatCard(label: String, count: Int, percent: Int, tint: Color, modifier: Modifier) {
+    Card(modifier, colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(14.dp)) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(label, color = tint, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(count.toString(), color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
+            Text("$percent% of shoe", color = Muted, fontSize = 10.sp)
+        }
+    }
+}
+
+private fun resultColor(result: String): Color = when (result) {
+    "P" -> PlayerBlue
+    "B" -> BankerRed
+    else -> TieGreen
 }
