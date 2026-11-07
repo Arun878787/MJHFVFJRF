@@ -23,6 +23,19 @@ object AnalyzerState {
             roadmapStatus = "Reading Roadmap… not enough clear beads"
             return
         }
+
+        // Do not let a partial/occluded frame replace a longer confirmed roadmap.
+        val locked = recordedHistory
+        if (locked.isNotEmpty() && candidate.size < locked.size) {
+            pendingMatches = 0
+            roadmapStatus = "Roadmap read incomplete • keeping " + locked.size + " saved beads"
+            return
+        }
+        if (locked.isNotEmpty() && candidate.take(locked.size) != locked) {
+            pendingMatches = 0
+            roadmapStatus = "Roadmap partly blocked • waiting for a clean read"
+            return
+        }
         if (candidate == pendingHistory) {
             pendingMatches++
         } else {
