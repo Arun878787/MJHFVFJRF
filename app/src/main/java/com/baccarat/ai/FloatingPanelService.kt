@@ -20,16 +20,16 @@ class FloatingPanelService : Service() {
         override fun run() {
             val estimate = AnalyzerState.estimateNext()
             val displayText = if (estimate.confidence == 0) {
-                "NEXT HAND ESTIMATE\\nWAITING FOR RESULTS\\n" + estimate.pattern
+                "NEXT HAND ESTIMATE\nWAITING FOR RESULTS\n" + estimate.pattern
             } else {
-                "NEXT HAND ESTIMATE\\n" + estimate.side +
-                    "\\nHistorical frequency: " + estimate.confidence + "%" +
-                    "\\nMatched hands: " + estimate.sampleSize +
-                    "\\nPattern: " + estimate.pattern
+                "NEXT HAND ESTIMATE\n" + estimate.side +
+                    "\nHistorical frequency: " + estimate.confidence + "%" +
+                    "\nMatched hands: " + estimate.sampleSize +
+                    "\nPattern: " + estimate.pattern
             }
-            panel?.text = "BACCARAT AI  •  ROADMAP READER\\n" + AnalyzerState.roadmapStatus + "\\n\\n" +
+            panel?.text = "BACCARAT AI  •  ROADMAP READER\n" + AnalyzerState.roadmapStatus + "\n\n" +
                 displayText +
-                "\\n\\nPast patterns are not a guarantee."
+                "\n\nPast patterns are not a guarantee."
             handler.postDelayed(this, 1000)
         }
     }
@@ -42,7 +42,7 @@ class FloatingPanelService : Service() {
         }
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         panel = TextView(this).apply {
-            text = "BACCARAT AI\\nPreparing estimate…"
+            text = "BACCARAT AI\nPreparing estimate…"
             textSize = 14f
             setTextColor(android.graphics.Color.WHITE)
             setBackgroundColor(0xF01A2940.toInt())
