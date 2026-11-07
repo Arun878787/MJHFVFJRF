@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 val prefs = remember { getSharedPreferences("baccarat_history", Context.MODE_PRIVATE) }
                 var history by remember { mutableStateOf<List<String>>(prefs.getString("results", "")?.map { it.toString() } ?: emptyList()) }
-                LaunchedEffect(history) { prefs.edit().putString("results", history.joinToString("")).apply() }
+                LaunchedEffect(history) { prefs.edit().putString("results", history.joinToString("")).apply(); AnalyzerState.setHistory(history) }
                 val player = history.count { it == "P" }
                 val banker = history.count { it == "B" }
                 val tie = history.count { it == "T" }
@@ -85,6 +85,22 @@ class MainActivity : ComponentActivity() {
                         ResultCard("PLAYER", player, percent(player), Color(0xFF2878D0), Modifier.weight(1f))
                         ResultCard("BANKER", banker, percent(banker), Color(0xFFD94B50), Modifier.weight(1f))
                         ResultCard("TIE", tie, percent(tie), Color(0xFF27966B), Modifier.weight(1f))
+                    }
+                    val patternEstimate = remember(history) {
+                        val outcomes = history.filter { it == "P" || it == "B" }
+                        if (outcomes.size < 8) "Need at least 8 Player/Banker results for a pattern estimate."
+                        else {
+                            val pCount = outcomes.count { it == "P" }
+                            val bCount = outcomes.count { it == "B" }
+                            "Pattern estimate: " + (if (pCount >= bCount) "PLAYER" else "BANKER") + " • recorded overall frequency " + (maxOf(pCount, bCount) * 100 / (pCount + bCount)) + "%"
+                        }
+                    }
+                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17243A))) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Text("PATTERN ESTIMATE", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                            Text(patternEstimate, color = Color(0xFFB7C6D9))
+                            Text("Historical frequency only. Baccarat outcomes remain random; this is not a reliable forecast.", color = Color(0xFFFFD28A))
+                        }
                     }
                     Text("Add the result after each hand", color = Color(0xFFB7C6D9))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
