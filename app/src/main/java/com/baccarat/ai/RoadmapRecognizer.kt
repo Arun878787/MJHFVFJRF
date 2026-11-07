@@ -2,74 +2,56 @@ package com.baccarat.ai
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import kotlin.math.cos
 import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.sin
 
-/** Conservative color reader for the Big Road bead grid in the supplied Stake layout. */
+/**
+ * Samples the annular outline at each cell in the six-row Big Road grid.
+ * The grid proportions are calibrated from the supplied Stake Speed Baccarat A screenshot.
+ */
 object RoadmapRecognizer {
-    data class Bead(val x: Int, val y: Int, val result: String)
+    data class Bead(val column: Int, val row: Int, val result: String)
 
     fun read(bitmap: Bitmap): List<Bead> {
-        val scale = 2
-        val w = max(1, bitmap.width / scale)
-        val h = max(1, bitmap.height / scale)
-        val left = (w * 0.025f).toInt()
-        val right = min(w, (w * 0.825f).toInt())
-        // The Big Road is the upper six-row grid. Exclude the derived roads below it.
-        val top = (h * 0.378f).toInt()
-        val bottom = min(h, (h * 0.458f).toInt())
-        if (right <= left || bottom <= top) return emptyList()
-        val rw = right - left
-        val rh = bottom - top
-        val sample = IntArray(rw * rh)
-        for (y in 0 until rh) for (x in 0 until rw) {
-            val sx = min(bitmap.width - 1, (left + x) * scale)
-            val sy = min(bitmap.height - 1, (top + y) * scale)
-            sample[y * rw + x] = bitmap.getPixel(sx, sy)
-        }
-        val seen = BooleanArray(sample.size)
-        val queue = IntArray(sample.size)
-        val beads = ArrayList<Bead>()
-        for (i in sample.indices) {
-            if (seen[i]) continue
-            val color = beadColor(sample[i]) ?: continue
-            var head = 0; var tail = 0
-            queue[tail++] = i; seen[i] = true
-            var minX = rw; var maxX = 0; var minY = rh; var maxY = 0; var count = 0
-            while (head < tail) {
-                val at = queue[head++]
-                val x = at % rw; val y = at / rw
-                count++
-                minX = min(minX, x); maxX = max(maxX, x)
-                minY = min(minY, y); maxY = max(maxY, y)
-                for (dy in -1..1) for (dx in -1..1) {
-                    if (dx == 0 && dy == 0) continue
-                    val nx = x + dx; val ny = y + dy
-                    if (nx !in 0 until rw || ny !in 0 until rh) continue
-                    val ni = ny * rw + nx
-                    if (!seen[ni] && beadColor(sample[ni]) == color) {
-                        seen[ni] = true
-                        queue[tail++] = ni
+        val width = bitmap.width
+        val height = bitmap.height
+        val firstCenterX = width * 0.0495f
+        val firstCenterY = height * 0.427f
+        val columnStep = width * 0.0274f
+        val rowStep = height * 0.0122f
+        val radius = width * 0.0085f
+        val output = ArrayList<Bead>()
+
+        for (column in 0 until 28) {
+            for (row in 0 until 6) {
+                val cx = (firstCenterX + column * columnStep).toInt()
+                val cy = (firstCenterY + row * rowStep).toInt()
+                var blue = 0
+                var red = 0
+                for (angle in 0 until 360 step 10) {
+                    val radians = Math.toRadians(angle.toDouble())
+                    val x = (cx + radius * cos(radians)).toInt()
+                    val y = (cy + radius * sin(radians)).toInt()
+                    if (x !in 0 until width || y !in 0 until height) continue
+                    val pixel = bitmap.getPixel(x, y)
+                    val r = Color.red(pixel)
+                    val g = Color.green(pixel)
+                    val b = Color.blue(pixel)
+                    if (b > 125 && b > r * 1.18 && b > g * 1.03) blue++
+                    if (r > 130 && r > b * 1.18 && r > g * 1.03) red++
+                }
+                val total = blue + red
+                if (total >= 9) {
+                    val result = if (blue > red) "P" else "B"
+                    val dominant = max(blue, red)
+                    if (dominant >= 9 && dominant.toFloat() / total >= 0.58f) {
+                        output.add(Bead(column, row, result))
                     }
                 }
             }
-            val bw = maxX - minX + 1
-            val bh = maxY - minY + 1
-            if (bw in 7..18 && bh in 7..18 && count in 18..180) {
-                beads.add(Bead((left + (minX + maxX) / 2) * scale,
-                    (top + (minY + maxY) / 2) * scale, color))
-            }
         }
-        return beads.distinctBy { (it.x / 12) to (it.y / 12) }
-            .sortedWith(compareBy<Bead> { it.x }.thenBy { it.y })
-    }
-
-    private fun beadColor(pixel: Int): String? {
-        val r = Color.red(pixel); val g = Color.green(pixel); val b = Color.blue(pixel)
-        return when {
-            b > 135 && b > r * 1.28 && b > g * 1.08 -> "P"
-            r > 145 && r > b * 1.30 && r > g * 1.08 -> "B"
-            else -> null
-        }
+        // Baccarat Big Road is read column by column, top to bottom within a column.
+        return output.sortedWith(compareBy<Bead> { it.column }.thenBy { it.row })
     }
 }
