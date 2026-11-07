@@ -15,21 +15,22 @@ object RoadmapRecognizer {
 
     fun read(bitmap: Bitmap): List<Bead> {
         val width = bitmap.width
+        if (width < bitmap.height) return emptyList()
         val height = bitmap.height
-        val firstCenterX = width * 0.0495f
-        val firstCenterY = height * 0.387f
-        val columnStep = width * 0.0274f
-        val rowStep = height * 0.0122f
-        val radius = width * 0.0085f
+        val firstCenterX = width * 0.0435f
+        val firstCenterY = height * 0.315f
+        val columnStep = width * 0.0229f
+        val rowStep = height * 0.0235f
+        val radius = width * 0.0067f
         val output = ArrayList<Bead>()
 
-        for (column in 0 until 28) {
+        for (column in 0 until 36) {
             for (row in 0 until 6) {
                 val cx = (firstCenterX + column * columnStep).toInt()
                 val cy = (firstCenterY + row * rowStep).toInt()
                 var blue = 0
                 var red = 0
-                for (angle in 0 until 360 step 10) {
+                for (angle in 0 until 360 step 8) {
                     val radians = Math.toRadians(angle.toDouble())
                     val x = (cx + radius * cos(radians)).toInt()
                     val y = (cy + radius * sin(radians)).toInt()
@@ -42,10 +43,10 @@ object RoadmapRecognizer {
                     if (r > 130 && r > b * 1.18 && r > g * 1.03) red++
                 }
                 val total = blue + red
-                if (total >= 9) {
+                if (total >= 18) {
                     val result = if (blue > red) "P" else "B"
                     val dominant = max(blue, red)
-                    if (dominant >= 9 && dominant.toFloat() / total >= 0.58f) {
+                    if (dominant >= 15 && dominant.toFloat() / total >= 0.72f) {
                         output.add(Bead(column, row, result))
                     }
                 }
