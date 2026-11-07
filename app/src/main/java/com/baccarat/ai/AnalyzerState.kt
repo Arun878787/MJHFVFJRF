@@ -7,10 +7,12 @@ object AnalyzerState {
     @Volatile var playerCount: Int? = null
     @Volatile var bankerCount: Int? = null
     @Volatile var tieCount: Int? = null
+    @Volatile var roadmapStatus: String = "Waiting for game screen…"
     @Volatile private var recordedHistory: List<String> = emptyList()
 
     fun update(text: String) { latestOcrText = text.replace(Regex("\\s+"), " ").take(400) }
     fun setHistory(history: List<String>) { recordedHistory = history.toList() }
+    fun setRoadmapStatus(status: String) { roadmapStatus = status }
 
     fun estimateNext(): PatternEstimate {
         val outcomes = recordedHistory.filter { it == "P" || it == "B" }
