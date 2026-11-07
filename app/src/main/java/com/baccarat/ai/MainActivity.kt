@@ -14,6 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,7 +39,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                var history by remember { mutableStateOf(listOf<String>()) }
+                val prefs = remember { getSharedPreferences("baccarat_history", Context.MODE_PRIVATE) }
+                var history by remember { mutableStateOf(prefs.getString("results", "")?.map { it.toString() } ?: emptyList()) }
+                LaunchedEffect(history) { prefs.edit().putString("results", history.joinToString("")).apply() }
                 val player = history.count { it == "P" }
                 val banker = history.count { it == "B" }
                 val tie = history.count { it == "T" }
@@ -45,7 +49,7 @@ class MainActivity : ComponentActivity() {
                 val percent: (Int) -> Int = { count -> count * 100 / total }
 
                 Column(
-                    Modifier.fillMaxSize().background(Color(0xFF0B1220)).padding(18.dp),
+                    Modifier.fillMaxSize().background(Color(0xFF0B1220)).verticalScroll(rememberScrollState()).padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text("BACCARAT AI", style = MaterialTheme.typography.headlineMedium, color = Color.White)
@@ -107,7 +111,7 @@ class MainActivity : ComponentActivity() {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17243A))) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("ROADMAP ANALYSIS", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                            Text("Roadmap circle recognition is not connected yet. Current screen reader extracts text only.", color = Color(0xFFB7C6D9))
+                            Text("Automatic colored-roadmap recognition still needs calibration against your actual game screen. The app will not guess results from unrelated screen text.", color = Color(0xFFB7C6D9))
                             Text("Percentages above describe recorded past hands only. They do not predict or improve the odds of the next hand.", color = Color(0xFFFFD28A))
                         }
                     }
