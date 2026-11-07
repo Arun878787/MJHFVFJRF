@@ -1,0 +1,53 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Verify Android project is at repository root
+        shell: bash
+        run: |
+          echo "Repository files:"
+          ls -la
+          test -f settings.gradle.kts || {
+            echo "ERROR: settings.gradle.kts must be at the repository root."
+            exit 1
+          }
+          test -f build.gradle.kts || {
+            echo "ERROR: root build.gradle.kts must be at the repository root."
+            exit 1
+          }
+          test -f app/build.gradle.kts || {
+            echo "ERROR: app/build.gradle.kts is missing. Upload the complete extracted project, preserving folders."
+            exit 1
+          }
+
+      - name: Build debug APK
+        run: gradle --no-daemon assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: baccarat-ai-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
