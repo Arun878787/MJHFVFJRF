@@ -17,7 +17,7 @@ object RoadmapRecognizer {
         val width = bitmap.width
         val height = bitmap.height
         val firstCenterX = width * 0.0495f
-        val firstCenterY = height * 0.427f
+        val firstCenterY = height * 0.387f
         val columnStep = width * 0.0274f
         val rowStep = height * 0.0122f
         val radius = width * 0.0085f
