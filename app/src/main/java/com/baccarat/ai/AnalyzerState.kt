@@ -34,8 +34,12 @@ object AnalyzerState {
         }
         val locked = recordedHistory
         if (locked.isNotEmpty() && candidate.size < locked.size) {
-            pendingMatches = 0
-            roadmapStatus = "Read mismatch • found " + candidate.size + " beads; clearing stale history"
+            // A smaller fresh scan means the old saved sequence is stale.
+            // Clear it immediately so estimateNext() cannot keep showing the old BANKER.
+            recordedHistory = emptyList()
+            pendingHistory = candidate
+            pendingMatches = 1
+            roadmapStatus = "Rebuilding roadmap • " + candidate.size + " beads • 1/3 stable reads"
             return
         }
         // Cell scan order can shift as the Big Road grows. Do not call this
