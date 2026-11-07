@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 val prefs = remember { getSharedPreferences("baccarat_history", Context.MODE_PRIVATE) }
-                var history by remember { mutableStateOf(prefs.getString("results", "")?.map { it.toString() } ?: emptyList()) }
+                var history by remember { mutableStateOf<List<String>>(prefs.getString("results", "")?.map { it.toString() } ?: emptyList()) }
                 LaunchedEffect(history) { prefs.edit().putString("results", history.joinToString("")).apply() }
                 val player = history.count { it == "P" }
                 val banker = history.count { it == "B" }
