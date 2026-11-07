@@ -64,8 +64,8 @@ class FloatingPanelService : Service() {
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.END
-            x = 12
+            gravity = Gravity.TOP or Gravity.START
+            x = 8
             y = 8
         }
         wm?.addView(panel, params)
