@@ -41,6 +41,8 @@ class CaptureService : Service() {
             @Suppress("DEPRECATION") intent?.getParcelableExtra(EXTRA_DATA)
         }
         if (code != Activity.RESULT_OK || data == null) { stopSelf(); return START_NOT_STICKY }
+        // Do not reuse a previous screen/session history (the source of the stale BANKER result).
+        AnalyzerState.resetSession()
         try {
             val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             projection = manager.getMediaProjection(code, data)
