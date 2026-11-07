@@ -81,8 +81,7 @@ class CaptureService : Service() {
             // Only replace the live detected history when enough beads were confidently found.
             val detectedBeads = RoadmapRecognizer.read(frameBitmap)
             if (detectedBeads.size >= 6) {
-                AnalyzerState.setHistory(detectedBeads.map { it.result })
-                AnalyzerState.roadmapStatus = "Big Road: ${detectedBeads.size} beads detected"
+                AnalyzerState.submitDetectedHistory(detectedBeads.map { it.result })
             } else {
                 AnalyzerState.roadmapStatus = "Looking for Big Road…"
             }
