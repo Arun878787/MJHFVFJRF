@@ -20,16 +20,16 @@ class FloatingPanelService : Service() {
         override fun run() {
             val estimate = AnalyzerState.estimateNext()
             val displayText = if (estimate.confidence == 0) {
-                "NEXT HAND ESTIMATE\nWAITING FOR RESULTS\n" + estimate.pattern
+                "HISTORICAL PATTERN CHECK\nWAITING FOR RESULTS\n" + estimate.pattern
             } else {
-                "NEXT HAND ESTIMATE\n" + estimate.side +
+                "HISTORICAL PATTERN CHECK\n" + estimate.side +
                     "\nHistorical frequency: " + estimate.confidence + "%" +
                     "\nMatched hands: " + estimate.sampleSize +
                     "\nPattern: " + estimate.pattern
             }
             panel?.text = "BACCARAT AI  •  ROADMAP READER\n" + AnalyzerState.roadmapStatus + "\n\n" +
                 displayText +
-                "\n\nPast patterns are not a guarantee."
+                "\n\nPast results do not predict the next hand."
             handler.postDelayed(this, 1000)
         }
     }
