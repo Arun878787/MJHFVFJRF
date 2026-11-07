@@ -23,8 +23,6 @@ object AnalyzerState {
             roadmapStatus = "Reading Roadmap… not enough clear beads"
             return
         }
-
-        // Do not let a partial/occluded frame replace a longer confirmed roadmap.
         val locked = recordedHistory
         if (locked.isNotEmpty() && candidate.size < locked.size) {
             pendingMatches = 0
@@ -36,9 +34,7 @@ object AnalyzerState {
             roadmapStatus = "Roadmap partly blocked • waiting for a clean read"
             return
         }
-        if (candidate == pendingHistory) {
-            pendingMatches++
-        } else {
+        if (candidate == pendingHistory) pendingMatches++ else {
             pendingHistory = candidate
             pendingMatches = 1
         }
@@ -46,34 +42,62 @@ object AnalyzerState {
             recordedHistory = candidate
             val p = candidate.count { it == "P" }
             val b = candidate.count { it == "B" }
-            roadmapStatus = "Big Road locked • ${candidate.size} beads • P:$p B:$b"
+            val t = candidate.count { it == "T" }
+            roadmapStatus = "Big Road locked • ${candidate.size} beads • P:${p} B:${b} T:${t}"
         } else {
             roadmapStatus = "Confirming Roadmap • ${pendingMatches}/3 stable reads"
         }
     }
 
+    /**
+     * Reports historical conditional frequencies only. It is not a prediction.
+     * No overall-history fallback: if the current sequence has too few comparable
+     * examples, show NO CLEAR EDGE rather than manufacture a confident side.
+     */
     fun estimateNext(): PatternEstimate {
         val outcomes = recordedHistory.filter { it == "P" || it == "B" }
-        if (outcomes.size < 8) return PatternEstimate("WAITING", 0, outcomes.size, "Waiting for 3 matching Roadmap reads")
-        val lastTwo = outcomes.takeLast(2).joinToString("")
-        val lastOne = outcomes.last().toString()
-        fun matches(suffix: String): List<String> {
+        if (outcomes.size < 12) {
+            return PatternEstimate("WAITING", 0, outcomes.size, "Need at least 12 confirmed Player/Banker results")
+        }
+
+        fun following(patternLength: Int): List<String> {
+            val suffix = outcomes.takeLast(patternLength)
             val found = mutableListOf<String>()
-            for (i in 0 until outcomes.size - suffix.length) {
-                if (outcomes.subList(i, i + suffix.length).joinToString("") == suffix) found.add(outcomes[i + suffix.length])
+            for (i in 0 until outcomes.size - patternLength) {
+                if (outcomes.subList(i, i + patternLength) == suffix) {
+                    found.add(outcomes[i + patternLength])
+                }
             }
             return found
         }
-        val twoBack = matches(lastTwo)
-        val oneBack = matches(lastOne)
-        val sample = when { twoBack.size >= 4 -> twoBack; oneBack.size >= 4 -> oneBack; else -> outcomes }
+
+        // Prefer the most specific repeatable sequence; use shorter context only
+        // when it has a larger, defensible sample.
+        val three = following(3)
+        val two = following(2)
+        val one = following(1)
+        val selected = when {
+            three.size >= 6 -> three to "After last 3 results"
+            two.size >= 8 -> two to "After last 2 results"
+            one.size >= 12 -> one to "After last result"
+            else -> return PatternEstimate("NO CLEAR EDGE", 0,
+                maxOf(three.size, two.size, one.size),
+                "Not enough matching historical examples")
+        }
+
+        val sample = selected.first
         val p = sample.count { it == "P" }
         val b = sample.count { it == "B" }
         val total = p + b
-        if (total == 0) return PatternEstimate("WAITING", 0, 0, "No usable Player/Banker sample")
-        val side = if (p > b) "PLAYER" else if (b > p) "BANKER" else "NO CLEAR EDGE"
-        val confidence = maxOf(p, b) * 100 / total
-        val pattern = when { twoBack.size >= 4 -> "After " + lastTwo; oneBack.size >= 4 -> "After " + lastOne; else -> "Overall recorded sequence" }
-        return PatternEstimate(side, confidence, total, pattern)
+        if (total < 6) return PatternEstimate("NO CLEAR EDGE", 0, total, "Insufficient comparable results")
+
+        val rate = maxOf(p, b) * 100 / total
+        // Require a meaningful gap before displaying a side; 50/50 or near-even
+        // samples must not be presented as a Player/Banker call.
+        if (kotlin.math.abs(p - b) < 2 || rate < 60) {
+            return PatternEstimate("NO CLEAR EDGE", rate, total, selected.second)
+        }
+        val side = if (p > b) "PLAYER" else "BANKER"
+        return PatternEstimate(side, rate, total, selected.second)
     }
 }
