@@ -76,6 +76,15 @@ class CaptureService : Service() {
             bitmap = Bitmap.createBitmap(padded, 0, 0, frame.width, frame.height)
             padded.recycle()
             frame.close()
+            // Read the blue/red bead sequence from the Big Road before OCR.
+            // Only replace the live detected history when enough beads were confidently found.
+            val detectedBeads = RoadmapRecognizer.read(bitmap)
+            if (detectedBeads.size >= 6) {
+                AnalyzerState.setHistory(detectedBeads.map { it.result })
+                AnalyzerState.setRoadmapStatus("Big Road: ${detectedBeads.size} beads detected")
+            } else {
+                AnalyzerState.setRoadmapStatus("Looking for Big Road…")
+            }
             recognizer.process(InputImage.fromBitmap(bitmap, 0))
                 .addOnSuccessListener { AnalyzerState.update(it.text) }
                 .addOnFailureListener { Log.w("BaccaratAI", "OCR frame failed", it) }
