@@ -15,6 +15,15 @@ object AnalyzerState {
     fun update(text: String) { latestOcrText = text.replace(Regex("\\s+"), " ").take(400) }
     fun setHistory(history: List<String>) { recordedHistory = history.toList() }
 
+    /** Start a fresh screen-capture session; never carry a stale 139-bead read forward. */
+    @Synchronized
+    fun resetSession() {
+        recordedHistory = emptyList()
+        pendingHistory = emptyList()
+        pendingMatches = 0
+        roadmapStatus = "Starting fresh roadmap scan…"
+    }
+
     @Synchronized
     fun submitDetectedHistory(history: List<String>) {
         val candidate = history.filter { it == "P" || it == "B" || it == "T" }
@@ -26,7 +35,7 @@ object AnalyzerState {
         val locked = recordedHistory
         if (locked.isNotEmpty() && candidate.size < locked.size) {
             pendingMatches = 0
-            roadmapStatus = "Roadmap read incomplete • keeping " + locked.size + " saved beads"
+            roadmapStatus = "Read mismatch • found " + candidate.size + " beads; clearing stale history"
             return
         }
         // Cell scan order can shift as the Big Road grows. Do not call this
