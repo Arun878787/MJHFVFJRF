@@ -82,9 +82,9 @@ class CaptureService : Service() {
             val detectedBeads = RoadmapRecognizer.read(frameBitmap)
             if (detectedBeads.size >= 6) {
                 AnalyzerState.setHistory(detectedBeads.map { it.result })
-                AnalyzerState.setRoadmapStatus("Big Road: ${detectedBeads.size} beads detected")
+                AnalyzerState.roadmapStatus = "Big Road: ${detectedBeads.size} beads detected"
             } else {
-                AnalyzerState.setRoadmapStatus("Looking for Big Road…")
+                AnalyzerState.roadmapStatus = "Looking for Big Road…"
             }
             recognizer.process(InputImage.fromBitmap(frameBitmap, 0))
                 .addOnSuccessListener { AnalyzerState.update(it.text) }
