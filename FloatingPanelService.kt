@@ -17,8 +17,10 @@ class FloatingPanelService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val refresh = object : Runnable {
         override fun run() {
-            panel?.text = "BACCARAT AI • SPEED\n${AnalyzerState.ocrText}"
-            handler.postDelayed(this, 1200)
+            val tally = AnalyzerState.visibleTally()
+            val detail = tally ?: AnalyzerState.ocrText.take(260)
+            panel?.text = "BACCARAT AI • LIVE OCR\n$detail\n\nHistorical frequency only — not a next-hand prediction"
+            handler.postDelayed(this, 1500)
         }
     }
 
@@ -30,7 +32,7 @@ class FloatingPanelService : Service() {
         }
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         panel = TextView(this).apply {
-            text = "BACCARAT AI • SPEED\nWaiting for readable text…"
+            text = "BACCARAT AI • LIVE OCR\nWaiting for readable screen text…"
             textSize = 12f
             setTextColor(android.graphics.Color.WHITE)
             setBackgroundColor(0xE8172033.toInt())
@@ -49,6 +51,7 @@ class FloatingPanelService : Service() {
             gravity = Gravity.TOP or Gravity.END
             x = 12
             y = 190
+            width = (resources.displayMetrics.widthPixels * 0.78f).toInt()
         }
         windowManager?.addView(panel, params)
         handler.post(refresh)

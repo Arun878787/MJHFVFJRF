@@ -1,23 +1,29 @@
-# Baccarat AI • Speed (Android starter)
+# Baccarat AI • Speed Analyzer (Android prototype)
 
-Target device: HONOR 400 Lite / Android 16. Initial screen layout: supplied Stake Speed Baccarat A screenshot.
+Target device: HONOR 400 Lite / Android 16. Package: `com.baccarat.ai`.
 
-## Included in this starter
-- Native Android Kotlin app shell.
-- User-approved MediaProjection screen capture.
-- Foreground screen-capture service notification.
-- ImageReader frame capture pipeline.
-- On-device ML Kit text recognition.
-- Floating overlay displaying recognized screen text.
-
-## Build APK with GitHub Actions
-1. Upload the **contents** of this project to the root of your GitHub repository, keeping folders intact.
-2. Ensure `.github/workflows/build-apk.yml` is present (not `blank.yml`).
-3. Open the repository's Actions tab.
-4. Select **Build Android APK**, then **Run workflow**.
-5. When the run succeeds, open it and download the `baccarat-ai-debug-apk` artifact.
+## Current prototype features
+- User-approved Android MediaProjection screen capture.
+- On-device Google ML Kit Latin text OCR; frames are not uploaded.
+- Optional floating overlay showing recognized text.
+- Best-effort extraction of visible P/B/T totals if the website exposes a legible text tally.
 
 ## Important limitations
-This is an early OCR prototype, not a finished Baccarat analyzer. It reads visible text and displays OCR output. It does not yet reliably recognize the coloured roadmap circles, distinguish each completed hand, maintain a validated shoe history, or calculate predictions. The OCR needs calibration against the actual phone screen and browser scaling.
+This version is an OCR prototype. It does **not** reliably recognize the colored roadmap circles, card values, or every completed hand. It does not predict the next result. Baccarat outcomes are random; historical frequencies are descriptive only and are not betting advice.
 
-Screen capture requires explicit Android consent and a visible notification. Secure-screen protections are not bypassed. The app does not place bets or guarantee Baccarat outcomes.
+## Build with GitHub Actions
+1. Upload the **contents** of this folder to the repository root, preserving `app/` and `.github/` folders.
+2. Open the **Actions** tab.
+3. Select **Build Android APK** (not the separate `CI` workflow).
+4. Select **Run workflow** on `main`.
+5. Open the completed run and download the `BaccaratAI-debug-APK` artifact.
+6. Extract the artifact ZIP and install `app-debug.apk` on the phone. Android may ask to allow installation from the browser/files app.
+
+## First launch
+1. Open the app.
+2. Tap Start automatic screen reading.
+3. Allow display over other apps when Android opens Settings, then return to the app.
+4. Tap Start again and approve the Android screen-capture prompt.
+5. A floating OCR panel appears. Stop it from the app with Stop analyzer.
+
+Screen capture is started only after explicit Android consent. Do not use it to bypass website rules or capture private information.
