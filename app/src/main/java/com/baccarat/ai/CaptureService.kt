@@ -1,6 +1,7 @@
 package com.baccarat.ai
 
 import android.app.*
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
