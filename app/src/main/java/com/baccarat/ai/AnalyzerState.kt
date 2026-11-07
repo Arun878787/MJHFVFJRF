@@ -29,11 +29,9 @@ object AnalyzerState {
             roadmapStatus = "Roadmap read incomplete • keeping " + locked.size + " saved beads"
             return
         }
-        if (locked.isNotEmpty() && candidate.take(locked.size) != locked) {
-            pendingMatches = 0
-            roadmapStatus = "Roadmap partly blocked • waiting for a clean read"
-            return
-        }
+        // Cell scan order can shift as the Big Road grows. Do not call this
+        // "partly blocked" just because its spatially-sorted sequence differs.
+        // Accept a changed full-size read only after three identical frames below.
         if (candidate == pendingHistory) pendingMatches++ else {
             pendingHistory = candidate
             pendingMatches = 1
